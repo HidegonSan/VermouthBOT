@@ -303,7 +303,7 @@ Source code: https://github.com/HidegonSan/VermouthBOT
 	# "Kcd"
 	if command == "kcd":
 		try:
-			await message.reply(f"`{key_to_str(int(args[0], 16))}`")
+			await message.reply(f"`{key_to_str(int(' '.join(args), 16))}`")
 		except:
 			await message.reply("`エラーが発生しました`")
 	# End of "Kcd"
