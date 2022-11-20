@@ -130,15 +130,16 @@ V.about
 V.bg (画像ファイルを添付)
   -> 画像をCTRPFの背景で使用できる形式にサイズ変更、変換します
 
-V.svc [ID]
-  -> [ID] に対する3DSのSVCの詳細を返します ( 'V.svc 0x9' => 'void ExitThread(void)' )
-
 V.kcd [キーコード]
   -> [キーコード] をボタンに変換します ( 'V.kcd 3' => 'A + B' )
 
 V.key [ボタン]
   -> [ボタン] をキーコードに変換します。( 'V.key A B' => '00000003' )
+
+V.svc [ID]
+  -> [ID] に対する3DSのSVCの詳細を返します ( 'V.svc 0x9' => 'void ExitThread(void)' )
 ```""", # ja
+
 
 	"en": """```
 V.help [LANGUAGE]
@@ -150,15 +151,16 @@ V.about
 V.bg (Attach image file)
   -> Resize and convert image to a format usable for CTRPF backgrounds
 
-V.svc [ID]
-  -> returns 3DS SVC details for [ID] ( 'V.svc 0x9' => 'void ExitThread(void)' )
-
 V.kcd [keycode].
   -> convert [keycode] to a button ( 'V.kcd 3' => 'A + B' )
 
 V.key [button].
   -> convert [button] to keycode ( 'V.key A B' => '00000003' )
+
+V.svc [ID]
+  -> returns 3DS SVC details for [ID] ( 'V.svc 0x9' => 'void ExitThread(void)' )
 ```""", # en
+
 
 	"fr": """```
 V.help [LANGUAGE]
@@ -170,14 +172,14 @@ V.about
 V.bg (joindre un fichier image)
   -> Redimensionne et convertit l'image dans un format utilisable pour les arrière-plans du CTRPF.
 
-V.svc [ID]
-  -> renvoie les détails du SVC de 3DS pour [ID] ('V.svc 0x9' => 'void ExitThread(void)' )
-
 V.kcd [keycode].
   -> convertit [keycode] en bouton ('V.kcd 3' => 'A + B' )
 
 V.key [button].
   -> convertit [bouton] en keycode ('V.key A B' => '00000003' )
+
+V.svc [ID]
+  -> renvoie les détails du SVC de 3DS pour [ID] ('V.svc 0x9' => 'void ExitThread(void)' )
 ```""", # fr
 }
 # End of Variables
@@ -202,6 +204,7 @@ def key_to_str(keys):
 
 
 def button_to_code(buttons):
+	buttons = " ".join(list(set([i.casefold() for i in buttons.split(" ")])))
 	ret = 0
 	button_codes = (0x80000000, 0x40000000, 0x20000000, 0x10000000, 0x8000000, 0x4000000, 0x2000000, 0x1000000, 0x100000, 0x8000, 0x4000, 0x800, 0x400, 0x200, 0x100, 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1, 0x80000000, 0x40000000, 0x20000000, 0x10000000, 0x8000000, 0x4000000, 0x2000000, 0x1000000, 0x80, 0x40, 0x20, 0x10, 0x80, 0x40, 0x20, 0x10)
 	button_names = ("cd", "cu", "cl", "cr", "sd", "su", "sl", "sr", "touch", "zr", "zl", "y", "x", "l", "r", "down", "up", "left", "right", "start", "select", "b", "a", "cpaddown", "cpadup", "cpadleft", "cpadright", "spaddown", "spadup", "spadleft", "spadright", "dpaddown", "dpadup", "dpadleft", "dpadright", "dd", "du", "dl", "dr")
@@ -310,7 +313,8 @@ Source code: https://github.com/HidegonSan/VermouthBOT
 	if command == "key":
 		try:
 			await message.reply(f"`{hex(button_to_code(' '.join(args)))[2:].upper().zfill(8)}`")
-		except:
+		except Exception as e:
+			print(e)
 			await message.reply("`エラーが発生しました`")
 	# End of "Key"
 
