@@ -117,6 +117,69 @@ svc_table = {
 	"0x7D": "QueryProcessMemory(MemInfo *Info, unsigned int *Out, Handle KProcess, unsigned int Addr)",
 	"0xFF": "Debug related (The Syscall access control mask doesn't apply for this SVC)"
 }
+
+
+help_messages = {
+	"ja": """```
+V.help [LANGUAGE]
+  -> このメッセージを表示します (LANGUAGE: ja, en, fr)
+
+V.about
+  -> このBOTの情報を表示します
+
+V.bg (画像ファイルを添付)
+  -> 画像をCTRPFの背景で使用できる形式にサイズ変更、変換します
+
+V.svc [ID]
+  -> [ID] に対する3DSのSVCの詳細を返します ( 'V.svc 0x9' => 'void ExitThread(void)' )
+
+V.kcd [キーコード]
+  -> [キーコード] をボタンに変換します ( 'V.kcd 3' => 'A + B' )
+
+V.key [ボタン]
+  -> [ボタン] をキーコードに変換します。( 'V.key A B' => '00000003' )
+```""", # ja
+
+	"en": """```
+V.help [LANGUAGE]
+  -> Display this message (LANGUAGE: ja, en, fr)
+
+V.about
+  -> Display information about this BOT
+
+V.bg (Attach image file)
+  -> Resize and convert image to a format usable for CTRPF backgrounds
+
+V.svc [ID]
+  -> returns 3DS SVC details for [ID] ( 'V.svc 0x9' => 'void ExitThread(void)' )
+
+V.kcd [keycode].
+  -> convert [keycode] to a button ( 'V.kcd 3' => 'A + B' )
+
+V.key [button].
+  -> convert [button] to keycode ( 'V.key A B' => '00000003' )
+```""", # en
+
+	"fr": """```
+V.help [LANGUAGE]
+  -> Afficher ce message (LANGUE : ja, en, fr)
+
+V.about
+  -> Affiche des informations sur ce BOT
+
+V.bg (joindre un fichier image)
+  -> Redimensionne et convertit l'image dans un format utilisable pour les arrière-plans du CTRPF.
+
+V.svc [ID]
+  -> renvoie les détails du SVC de 3DS pour [ID] ('V.svc 0x9' => 'void ExitThread(void)' )
+
+V.kcd [keycode].
+  -> convertit [keycode] en bouton ('V.kcd 3' => 'A + B' )
+
+V.key [button].
+  -> convertit [bouton] en keycode ('V.key A B' => '00000003' )
+```""", # fr
+}
 # End of Variables
 
 
@@ -187,21 +250,7 @@ async def on_message(message):
 
 	# "Help"
 	if command == "help":
-		await message.reply(
-"""```
-V.bg (画像ファイルを添付)
-  -> 画像をCTRPFの背景で使用できる形式にサイズ変更、変換します
-
-V.svc [ID]
-  -> [ID] に対する3DSのSVCの詳細を返します ( 'V.svc 0x9' => 'void ExitThread(void)' )
-
-V.kcd [キーコード]
-  -> [キーコード] をボタンに変換します ( 'V.kcd 3' => 'A + B' )
-
-V.key [ボタン]
-  -> [ボタン] をキーコードに変換します。( 'V.key A B' => '00000003' )
-```"""
-		)
+		await message.reply(help_messages.get(args[0] if len(args) else "ja"))
 	# End of "Help"
 
 	if command == "about":
@@ -235,19 +284,25 @@ Source code: https://github.com/HidegonSan/VermouthBOT
 
 			shutil.rmtree("./tmp")
 		except Exception as e:
-			await message.reply("`エラーが発生しました。`")
+			await message.reply("`エラーが発生しました`")
 	# End of "Bg"
 
 
 	# "SVC"
 	if command == "svc":
-		await message.reply(f"`{svc_table.get(args[0], 'SVC Not found.')}`")
+		try:
+			await message.reply(f"`{svc_table.get(args[0], 'SVC Not found.')}`")
+		except:
+			await message.reply("`エラーが発生しました`")
 	# End of "SVC"
 
 
 	# "Kcd"
 	if command == "kcd":
-		await message.reply(f"`{key_to_str(int(args[0], 16))}`")
+		try:
+			await message.reply(f"`{key_to_str(int(args[0], 16))}`")
+		except:
+			await message.reply("`エラーが発生しました`")
 	# End of "Kcd"
 
 
@@ -256,7 +311,7 @@ Source code: https://github.com/HidegonSan/VermouthBOT
 		try:
 			await message.reply(f"`{hex(button_to_code(' '.join(args)))[2:].upper().zfill(8)}`")
 		except:
-			await message.reply("`エラーが発生しました。`")
+			await message.reply("`エラーが発生しました`")
 	# End of "Key"
 
 
