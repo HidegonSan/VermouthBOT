@@ -3,7 +3,7 @@ import shutil
 import sys
 from PIL import Image
 import discord
-
+import hashlib
 
 
 # Variables
@@ -122,7 +122,7 @@ svc_table = {
 help_messages = {
 	"ja": """```
 V.help [LANGUAGE]
-  -> このメッセージを表示します (LANGUAGE: ja, en, fr)
+  -> このメッセージを表示します (LANGUAGE: ja, en)
 
 V.about
   -> このBOTの情報を表示します
@@ -134,16 +134,25 @@ V.kcd [キーコード]
   -> [キーコード] をボタンに変換します ( 'V.kcd 3' => 'A + B' )
 
 V.key [ボタン]
-  -> [ボタン] をキーコードに変換します。( 'V.key A B' => '00000003' )
+  -> [ボタン] をキーコードに変換します ( 'V.key A B' => '00000003' )
 
 V.svc [ID]
   -> [ID] に対する3DSのSVCの詳細を返します ( 'V.svc 0x9' => 'void ExitThread(void)' )
+
+V.ipc [command id] [normal params] [translate params]
+  -> IPCのヘッダを作成します
+
+V.revipc [IPCヘッダ]
+  -> IPCのヘッダを分解します
+
+V.frd [フレンドコード]
+  -> そのフレンドコードが有効かどうかチェックサムを確認します
 ```""", # ja
 
 
 	"en": """```
 V.help [LANGUAGE]
-  -> Display this message (LANGUAGE: ja, en, fr)
+  -> Display this message (LANGUAGE: ja, en)
 
 V.about
   -> Display information about this BOT
@@ -159,28 +168,16 @@ V.key [button].
 
 V.svc [ID]
   -> returns 3DS SVC details for [ID] ( 'V.svc 0x9' => 'void ExitThread(void)' )
+
+v.ipc [command id] [normal params] [translate params]
+  -> make IPC header
+
+V.revipc [IPC header]
+  -> disassemble IPC header
+
+V.frd [friend code]
+  -> check the checksum to verify if the friend code is valid
 ```""", # en
-
-
-	"fr": """```
-V.help [LANGUAGE]
-  -> Afficher ce message (LANGUE : ja, en, fr)
-
-V.about
-  -> Affiche des informations sur ce BOT
-
-V.bg (joindre un fichier image)
-  -> Redimensionne et convertit l'image dans un format utilisable pour les arrière-plans du CTRPF.
-
-V.kcd [keycode].
-  -> convertit [keycode] en bouton ('V.kcd 3' => 'A + B' )
-
-V.key [button].
-  -> convertit [bouton] en keycode ('V.key A B' => '00000003' )
-
-V.svc [ID]
-  -> renvoie les détails du SVC de 3DS pour [ID] ('V.svc 0x9' => 'void ExitThread(void)' )
-```""", # fr
 }
 # End of Variables
 
@@ -213,6 +210,7 @@ def button_to_code(buttons):
 		for button_code, button_name in zip(button_codes, button_names):
 			if button == button_name:
 				ret += button_code
+				break
 
 	return ret
 
@@ -226,6 +224,30 @@ def resize_image(path, width, height):
 def save_as_bmp(src_path, dst_path):
 	img = Image.open(src_path)
 	img.save(dst_path, "bmp")
+
+
+def is_valid_friend_code(friend_code: int) -> bool:
+	return ((friend_code >> 32) == (hashlib.sha1((friend_code & 0xFFFFFFFF).to_bytes(4, byteorder="little")).digest()[0] >> 1))
+
+
+def ipc_makeheader(command_id, normal_params, translate_params):
+	return (command_id << 16) | ((normal_params & 0x3F) << 6) | ((translate_params & 0x3F) << 0)
+
+
+def ipc_reverse_header(header):
+	return (header >> 16, (header >> 6) & 0x3F, header & 0x3F)
+
+
+def hex_format(num, width=8):
+	return "0x" + (hex(num)[2:]).upper().zfill(width)
+
+
+def number(num):
+	num = str(num)
+	if num.casefold().startswith("0x"):
+		return int(num, 16)
+	if num.isdigit():
+		return int(num)
 # End of Functions
 
 
@@ -295,7 +317,7 @@ Source code: https://github.com/HidegonSan/VermouthBOT
 	if command == "svc":
 		try:
 			await message.reply(f"`{svc_table.get(args[0], 'SVC Not found.')}`")
-		except:
+		except Exception as e:
 			await message.reply("`エラーが発生しました`")
 	# End of "SVC"
 
@@ -304,7 +326,7 @@ Source code: https://github.com/HidegonSan/VermouthBOT
 	if command == "kcd":
 		try:
 			await message.reply(f"`{key_to_str(int(' '.join(args), 16))}`")
-		except:
+		except Exception as e:
 			await message.reply("`エラーが発生しました`")
 	# End of "Kcd"
 
@@ -314,9 +336,36 @@ Source code: https://github.com/HidegonSan/VermouthBOT
 		try:
 			await message.reply(f"`{hex(button_to_code(' '.join(args)))[2:].upper().zfill(8)}`")
 		except Exception as e:
-			print(e)
 			await message.reply("`エラーが発生しました`")
 	# End of "Key"
+
+
+	# "Frd"
+	if command == "frd":
+		try:
+			await message.reply(f"`{'Valid friend code' if is_valid_friend_code(int(args[0])) else 'Invalid friend code'}`")
+		except Exception as e:
+			await message.reply("`エラーが発生しました`")
+	# End of "Frd"
+
+
+	# "IPC"
+	if command == "ipc":
+		try:
+			await message.reply(f"`{hex_format(ipc_makeheader(number(args[0]), number(args[1]), number(args[2])))}`")
+		except Exception as e:
+			await message.reply("`エラーが発生しました`")
+	# End of "SVC"
+
+
+	# "RevIPC"
+	if command == "revipc":
+		try:
+			revheader = ipc_reverse_header(number(args[0]))
+			await message.reply(f"`command_id: {hex(revheader[0])}, normal_params: {revheader[1]} translate_params: {revheader[2]}`")
+		except Exception as e:
+			await message.reply("`エラーが発生しました`")
+	# End of "RevIPC"
 
 
 
